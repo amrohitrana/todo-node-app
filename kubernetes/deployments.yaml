@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: django-app
+  template:
+    metadata:
+      labels:
+        app: django-app
+    spec:
+      containers:
+        - name: django-container
+          image: my-django-image:latest
+          env:
+            - name: DATABASE_URL
+              value: "postgres://user:password@postgres-service:5432/dbname"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: django-secrets
+                  key: secret_key
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: SSL_CERTIFICATE
+              value: /etc/ssl/certs/new-cert.pem
+            - name: SSL_PRIVATE_KEY
+              value: /etc/ssl/private/new-key.pem
+          volumeMounts:
+            - name: ssl-certs
+              mountPath: /etc/ssl/certs/
+              readOnly: true
+            - name: ssl-private-key
+              mountPath: /etc/ssl/private/
+              readOnly: true
+      volumes:
+        - name: ssl-certs
+          secret:
+            secretName: example-tls
+            items:
+            - key: tls.crt
+              path: new-cert.pem
+        - name: ssl-private-key
+          secret:
+            secretName: example-tls
+            items:
+            - key: tls.key
+              path: new-key.pem
+
